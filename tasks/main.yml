@@ -1,0 +1,98 @@
+- name: Validate variables
+  assert:
+    that:
+      - nginx_certbot_email != ""
+      - nginx_certbot_method in ["webroot", "dns-route53"]
+
+- name: Validate variables for route53
+  when: nginx_enable_ssl and nginx_certbot_method == "dns-route53"
+  assert:
+    that:
+      - nginx_certbot_aws_access_key_id != ""
+      - nginx_certbot_aws_secret_access_key != ""
+
+- name: Install dependencies
+  apt:
+    update_cache: yes
+    name: nginx
+
+- name: Install ssl dependencies
+  when: nginx_enable_ssl
+  apt:
+    name: certbot
+
+- name: Install dns-route53 dependencies
+  when: nginx_enable_ssl and nginx_certbot_method == "dns-route53"
+  apt:
+    name: python3-certbot-dns-route53
+
+- name: Install nginx config
+  unarchive:
+    src: "nginxconfig.io-{{ nginx_domain }}.tar.gz"
+    dest: /etc/nginx/
+    owner: root
+    group: root
+
+- name: Generate Diffie-Hellman keys
+  command:
+    cmd: openssl dhparam -out /etc/nginx/dhparam.pem 2048
+    creates: /etc/nginx/dhparam.pem
+
+- name: Check for SSL certificates
+  when: nginx_enable_ssl
+  stat:
+    get_attributes: no
+    get_checksum: no
+    get_mime: no
+    path: "/etc/letsencrypt/live/{{ nginx_domain }}/privkey.pem"
+  register: nginx_ssl_file
+
+- name: Initialize certbot
+  when: nginx_enable_ssl and nginx_ssl_file.stat.islnk is not defined
+  block:
+
+    - name: Comment out SSL related directives in the configuration
+      script: comment_out_ssl.sh
+
+    - name: Reload your NGINX server
+      command: systemctl reload nginx
+
+    - name: Obtain SSL certificates from Let's Encrypt using Certbot webroot
+      when: nginx_certbot_method == "webroot"
+      command: "certbot certonly --webroot -d \"{{ nginx_domain }}\" --email \"{{ nginx_certbot_email }}\" -w /var/www/_letsencrypt -n --agree-tos --force-renewal"
+
+    - when: nginx_certbot_method == "dns-route53"
+      block:
+
+        - name: Create ~/.aws
+          file:
+            path: /root/.aws
+            state: directory
+            mode: '700'
+
+        - name: Save AWS credentials
+          template:
+            src: aws_config.j2
+            dest: /root/.aws/config
+
+        - name: Obtain SSL certificates from Let's Encrypt using Certbot dns-route53
+          command: "certbot certonly --dns-route53 -d \"{{ nginx_domain }}\" -d \"*.{{ nginx_domain }}\" --email \"{{ nginx_certbot_email }}\" -n --agree-tos --force-renewal"
+
+    - name: Uncomment SSL related directives in the configuration
+      script: comment_in_ssl.sh
+
+    - name: Reload your NGINX server
+      command: systemctl reload nginx
+
+    - name: Configure Certbot to reload NGINX when it successfully renews certificates
+      copy:
+        src: nginx-reload.sh
+        dest: /etc/letsencrypt/renewal-hooks/post/nginx-reload.sh
+        mode: '755'
+
+- name: Comment out SSL related directives in the configuration
+  when: not nginx_enable_ssl
+  script: comment_out_ssl.sh
+
+- name: Reload your NGINX server
+  command: systemctl reload nginx

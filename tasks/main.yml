@@ -32,6 +32,7 @@
     dest: /etc/nginx/
     owner: root
     group: root
+    mode: 0755
 
 - name: Generate Diffie-Hellman keys
   command:

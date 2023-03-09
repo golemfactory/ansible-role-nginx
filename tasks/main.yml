@@ -32,7 +32,12 @@
     dest: /etc/nginx/
     owner: root
     group: root
-    mode: 0755
+    # Uncomment "mode" and delete next step when https://github.com/ansible/ansible/issues/78623 is resolved
+    #mode: +r,-w,u+w,-x,+X
+
+- name: Fix permissions (workaround ansible issue 78623)
+  command:
+    cmd: chmod -R +r,-w,u+w,-x,+X /etc/nginx
 
 - name: Generate Diffie-Hellman keys
   command:

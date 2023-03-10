@@ -1,10 +1,10 @@
 nginx_enable_ssl: yes
 nginx_domain: "{{ inventory_hostname }}"
 # must be specified
-nginx_certbot_email:
+nginx_certbot_email: ""
 # one of "webroot", "dns-route53"
 nginx_certbot_method: "webroot"
 
 # required when nginx_certbot_method == "dns-route53"
-nginx_certbot_aws_access_key_id:
-nginx_certbot_aws_secret_access_key:
+nginx_certbot_aws_access_key_id: ""
+nginx_certbot_aws_secret_access_key: ""

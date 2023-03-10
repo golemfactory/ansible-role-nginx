@@ -1,4 +1,5 @@
 - name: Validate variables
+  when: nginx_enable_ssl
   assert:
     that:
       - nginx_certbot_email != ""

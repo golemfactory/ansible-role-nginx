@@ -63,6 +63,11 @@
     - name: Reload your NGINX server
       command: systemctl reload nginx
 
+    - name: Create /var/www/_letsencrypt
+      file:
+        path: /var/www/_letsencrypt
+        state: directory
+
     - name: Obtain SSL certificates from Let's Encrypt using Certbot webroot
       when: nginx_certbot_method == "webroot"
       command: "certbot certonly --webroot -d \"{{ nginx_domain }}\" --email \"{{ nginx_certbot_email }}\" -w /var/www/_letsencrypt -n --agree-tos --force-renewal"

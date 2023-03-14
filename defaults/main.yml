@@ -1,5 +1,8 @@
-nginx_enable_ssl: yes
 nginx_domain: "{{ inventory_hostname }}"
+# can be an archive or a plain text file (with .conf or .conf.j2 extention)
+nginx_config_file: "nginxconfig.io-{{ nginx_domain }}.tar.gz"
+
+nginx_enable_ssl: yes
 # must be specified
 nginx_certbot_email: ""
 # one of "webroot", "dns-route53"

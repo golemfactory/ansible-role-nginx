@@ -27,9 +27,19 @@
   apt:
     name: python3-certbot-dns-route53
 
-- name: Install nginx config
+- name: Install nginx config (from file)
+  when: nginx_config_file.endswith(".conf") or nginx_config_file.endswith(".conf.j2")
+  template:
+    src: "{{ nginx_config_file }}"
+    dest: /etc/nginx/nginx.conf
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Install nginx config (from archive)
+  when: not (nginx_config_file.endswith(".conf") or nginx_config_file.endswith(".conf.j2"))
   unarchive:
-    src: "nginxconfig.io-{{ nginx_domain }}.tar.gz"
+    src: "{{ nginx_config_file }}"
     dest: /etc/nginx/
     owner: root
     group: root
